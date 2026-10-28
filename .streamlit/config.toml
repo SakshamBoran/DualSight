@@ -1,0 +1,23 @@
+# Streamlit settings for the AeroPrice page (read when you run `streamlit run frontend/app.py`
+# from the project folder).
+
+[server]
+# Serves frontend/static/ (the bundled Archivo font) at /app/static/
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#2F6EA5"
+backgroundColor = "#F7F8FC"
+secondaryBackgroundColor = "#EEF1F8"
+textColor = "#1F2A37"
+font = "Archivo, sans-serif"
+baseRadius = "10px"
+
+[[theme.fontFaces]]
+family = "Archivo"
+url = "app/static/fonts/archivo-variable.woff2"
+weight = "100 900"

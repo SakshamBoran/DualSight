@@ -1,0 +1,40 @@
+# ---- Python environments and caches
+.venv/
+venv/
+venv_ui/
+new_env/
+__pycache__/
+*.pyc
+
+# ---- Data (download it separately, see SETUP.md)
+data/*
+!data/.gitkeep
+outputs/
+image_patches/
+
+# ---- Trained models and Kaggle exports (too large for GitHub; see "Models" in README.md)
+models/*
+!models/.gitkeep
+*.h5
+*.keras
+*.joblib
+*.npz
+*.zip
+*.pkl
+*.csv
+*.xlsx
+
+# ---- Charts the app generates while running
+static/plots/
+frontend/public/static/plots/
+
+# ---- Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Not part of this repository: the previous project's documents and its legacy HTML page
+docs/original_*
+frontend/public/

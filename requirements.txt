@@ -1,0 +1,18 @@
+# requirements.txt
+# Python 3.10 is required (tensorflow 2.10 / numpy 1.23.5 do not support 3.11+).
+
+sentinelhub==3.9.1
+numpy==1.23.5
+Pillow
+rasterio
+pandas
+tensorflow==2.10.0
+scikit-learn
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Imported by backend/main.py and pipeline/predict_cmd.py but missing upstream
+matplotlib
+seaborn
+shap
+joblib
