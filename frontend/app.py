@@ -14,7 +14,7 @@ import requests
 import streamlit as st
 from PIL import Image
 
-API_BASE_URL = os.environ.get("AEROPRICE_API", "http://localhost:5000")
+API_BASE_URL = os.environ.get("DUALSIGHT_API", "http://localhost:5000")
 
 # ------------------------------------------------------------------ theme
 st.set_page_config(page_title="DualSight", layout="wide", initial_sidebar_state="collapsed")

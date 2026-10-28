@@ -19,9 +19,9 @@ CSV_PATH = "data/austin_master_dataset.csv"
 def main():
     args = sys.argv[1:]
     if "--model" in args:
-        os.environ["AEROPRICE_MODEL"] = args[args.index("--model") + 1]
+        os.environ["DUALSIGHT_MODEL"] = args[args.index("--model") + 1]
     if "--image-only" in args:  # kept from the earlier version of this script
-        os.environ["AEROPRICE_MODEL"] = "image_only"
+        os.environ["DUALSIGHT_MODEL"] = "image_only"
     positional = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] != "--model")]
     if not positional:
         print(__doc__)
@@ -32,7 +32,7 @@ def main():
         print("First argument must be an integer row index")
         sys.exit(1)
 
-    from model_service import ModelService  # imported late so AEROPRICE_MODEL is respected
+    from model_service import ModelService  # imported late so DUALSIGHT_MODEL is respected
 
     df = pd.read_csv(CSV_PATH)
     if idx < 0 or idx >= len(df):

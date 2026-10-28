@@ -1,4 +1,4 @@
-# Streamlit settings for the AeroPrice page (read when you run `streamlit run frontend/app.py`
+# Streamlit settings for the DualSight page (read when you run `streamlit run frontend/app.py`
 # from the project folder).
 
 [server]

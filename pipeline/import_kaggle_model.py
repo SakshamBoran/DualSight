@@ -1,7 +1,7 @@
-"""Import a model trained with kaggle/aeroprice_kaggle_training.ipynb.
+"""Import a model trained with kaggle/dualsight_kaggle_training.ipynb.
 
 Run from the project root:
-    python pipeline/import_kaggle_model.py path\\to\\aeroprice_trained_model.zip
+    python pipeline/import_kaggle_model.py path\\to\\dualsight_trained_model.zip
 
 It rebuilds the architecture from model_def.py in your local TensorFlow 2.10,
 loads the Kaggle weights layer-by-layer by name, checks that the predictions
@@ -54,7 +54,7 @@ def leaf_layers(model):
 
 def main():
     if len(sys.argv) < 2:
-        raise SystemExit("Usage: python pipeline/import_kaggle_model.py <aeroprice_trained_model.zip or folder>")
+        raise SystemExit("Usage: python pipeline/import_kaggle_model.py <dualsight_trained_model.zip or folder>")
     src = sys.argv[1]
     if zipfile.is_zipfile(src):
         os.makedirs(EXPORT_DIR, exist_ok=True)

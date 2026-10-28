@@ -31,7 +31,7 @@ Adding the satellite image to the listing numbers cuts the typical error from 15
 
 ## How it works
 
-**Two hybrid models**, trained in [`kaggle/aeroprice_kaggle_training.ipynb`](kaggle/aeroprice_kaggle_training.ipynb) on a free Kaggle GPU:
+**Two hybrid models**, trained in [`kaggle/dualsight_kaggle_training.ipynb`](kaggle/dualsight_kaggle_training.ipynb) on a free Kaggle GPU:
 
 1. **Neural hybrid:** a ResNet50 image branch (ImageNet weights, last layers fine-tuned) and a dense numeric branch, fused and trained end to end on log(price).
 2. **Deep + boosting hybrid:** ResNet50 image features compressed with PCA (32 components), combined with the raw numbers in a gradient-boosting model.
@@ -68,13 +68,13 @@ Full instructions are in [SETUP.md](SETUP.md). In short:
    - `austin_master_dataset.csv` and the image patches from [Kaggle](https://www.kaggle.com/datasets/sanveersinghsuneja/austin-satellite-property-data), into `data/`.
    - The original image-only model from [Hugging Face](https://huggingface.co/sanveer-singh/austin-property-predictor), into `models/`.
 3. Add the hybrid models. Either:
-   - download `aeroprice_trained_model.zip` from this repository's **Releases** page, or
+   - download `dualsight_trained_model.zip` from this repository's **Releases** page, or
    - train your own with the Kaggle notebook.
 
    Then import it:
 
    ```bash
-   python pipeline/import_kaggle_model.py path/to/aeroprice_trained_model.zip
+   python pipeline/import_kaggle_model.py path/to/dualsight_trained_model.zip
    ```
 4. Start the backend and the interface:
 
@@ -86,8 +86,6 @@ Full instructions are in [SETUP.md](SETUP.md). In short:
 Model files and data are not stored in this repository because they exceed GitHub's file-size limit.
 
 ## Acknowledgements
-
-DualSight started from the open-source [AeroPrice](https://github.com/sanveer-singh-suneja/AeroPrice) project, whose data pipeline, Sentinel-2 image patches and image-only baseline model it builds on. The setup steps above download that project's published dataset and baseline model.
 
 Data and assets:
 - Satellite imagery: Copernicus Sentinel-2

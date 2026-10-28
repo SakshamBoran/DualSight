@@ -1,6 +1,6 @@
 # DualSight: local setup (Windows, CPU-only laptop)
 
-Satellite + listing-detail price estimates for Austin, TX, built on the AeroPrice pipeline, plus a Kaggle notebook that trains two hybrid models (image + numbers), and real, model-computed explanations in the app.
+Satellite + listing-detail price estimates for Austin, TX, with a Kaggle notebook that trains two hybrid models (image + numbers), and real, model-computed explanations in the app.
 Your laptop runs the app and every data step. Training happens on Kaggle's free GPU.
 
 ## 1. Two Python 3.10 environments
@@ -9,7 +9,7 @@ TensorFlow 2.10 and current Streamlit need conflicting versions of numpy and pro
 Python 3.10 is required (`py -0` should list `-V:3.10`).
 
 ```bash
-cd /d D:\aeroprice\aeroprice
+cd DualSight
 
 py -3.10 -m venv venv
 venv\Scripts\activate
@@ -70,7 +70,7 @@ Scores every model you have on the same held-out properties. A full run (no `--s
 
 ## 5. Retrain on Kaggle: two hybrid models
 
-1. On kaggle.com: **Create → New Notebook → File → Import Notebook** and upload `kaggle\aeroprice_kaggle_training.ipynb`.
+1. On kaggle.com: **Create → New Notebook → File → Import Notebook** and upload `kaggle\dualsight_kaggle_training.ipynb`.
 2. **Settings:** Accelerator **GPU T4 x2** (or P100), and **Internet on**.
 3. **Add Input:** dataset `sanveersinghsuneja/austin-satellite-property-data`.
 4. **Run All** (about 25–70 min). It trains and compares, on one test set:
@@ -79,13 +79,13 @@ Scores every model you have on the same held-out properties. A full run (no `--s
    - A numbers-only model and a guess-the-median baseline.
 
    Optional switches in the Settings cell: `USE_LATLON = True` adds latitude/longitude; `QUICK_TEST = True` does a short check run.
-   (`kaggle\aeroprice_kaggle_training_v1.ipynb` is the earlier, neural-only version.)
-5. Download `aeroprice_trained_model.zip` from the Output panel.
+   (`kaggle\dualsight_kaggle_training_v1.ipynb` is the earlier, neural-only version.)
+5. Download `dualsight_trained_model.zip` from the Output panel.
 6. On your laptop:
 
 ```bash
 venv\Scripts\activate
-python pipeline/import_kaggle_model.py "%USERPROFILE%\Downloads\aeroprice_trained_model.zip"
+python pipeline/import_kaggle_model.py "%USERPROFILE%\Downloads\dualsight_trained_model.zip"
 ```
 
 This:
@@ -93,10 +93,10 @@ This:
 - retrains model 2's gradient boosting with your own scikit-learn from Kaggle's image features, and checks the test score matches;
 - makes the better of the two the **active model**, then saves everything in `models\`.
 
-Restart the backend to use it. To choose a model yourself, set `AEROPRICE_MODEL` before starting the backend:
+Restart the backend to use it. To choose a model yourself, set `DUALSIGHT_MODEL` before starting the backend:
 
 ```bash
-set AEROPRICE_MODEL=neural_hybrid
+set DUALSIGHT_MODEL=neural_hybrid
 python backend/main.py
 ```
 
@@ -114,7 +114,7 @@ python backend/main.py
 
 The notebook also saves a global SHAP importance chart (`global_importance.png`) for model 2.
 The 1–10 ratings and "Inferred amenities" are the original project's rule-based formulas, not model output, and the app labels them that way.
-Speed knobs: `AEROPRICE_OCCLUSION_GRID=4` (default 8) and `AEROPRICE_IG_STEPS=8` (default 16).
+Speed knobs: `DUALSIGHT_OCCLUSION_GRID=4` (default 8) and `DUALSIGHT_IG_STEPS=8` (default 16).
 
 ## 7. Rebuilding the satellite data from scratch (optional)
 

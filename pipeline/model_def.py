@@ -3,7 +3,7 @@ from tensorflow.keras import layers, Model
 from tensorflow.keras.applications import ResNet50
 
 # Keep this function identical to build_multimodal_model() in
-# kaggle/aeroprice_kaggle_training.ipynb. Weights trained on Kaggle are moved
+# kaggle/dualsight_kaggle_training.ipynb. Weights trained on Kaggle are moved
 # into this architecture layer-by-layer *by name*, so the explicit layer names
 # below must match exactly.
 

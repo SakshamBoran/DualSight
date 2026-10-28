@@ -1,11 +1,11 @@
-"""Loads whichever AeroPrice model is active, predicts prices and explains them.
+"""Loads whichever DualSight model is active, predicts prices and explains them.
 
 Three models can be active:
     image_only       the original release (models/final_model_satellite.h5)
     neural_hybrid    image + numbers, trained end to end on Kaggle
     boosting_hybrid  ResNet50 image features (PCA) + numbers, gradient boosting
 
-Which one is used: the AEROPRICE_MODEL environment variable if set, otherwise
+Which one is used: the DUALSIGHT_MODEL environment variable if set, otherwise
 "active_model" in models/model_meta.json (chosen by import_kaggle_model.py),
 otherwise the newest model that exists.
 
@@ -34,8 +34,8 @@ TEST_PREDS_PATH = os.path.join(MODELS_DIR, "test_predictions.csv")
 
 IMAGE_SIZE = 128
 CAFFE_MEAN_BGR = np.array([103.939, 116.779, 123.68], dtype="float32")
-OCCLUSION_GRID = int(os.environ.get("AEROPRICE_OCCLUSION_GRID", "8"))
-IG_STEPS = int(os.environ.get("AEROPRICE_IG_STEPS", "16"))
+OCCLUSION_GRID = int(os.environ.get("DUALSIGHT_OCCLUSION_GRID", "8"))
+IG_STEPS = int(os.environ.get("DUALSIGHT_IG_STEPS", "16"))
 N_BACKGROUND = 16
 
 MODEL_LABELS = {
@@ -87,7 +87,7 @@ class ModelService:
             ("neural_hybrid", os.path.exists(NEURAL_PATH) and self.meta is not None),
             ("boosting_hybrid", os.path.exists(BOOSTING_PATH) and os.path.exists(FEATURES_PATH) and self.meta is not None),
         ) if ok]
-        wanted = os.environ.get("AEROPRICE_MODEL") or (self.meta or {}).get("active_model")
+        wanted = os.environ.get("DUALSIGHT_MODEL") or (self.meta or {}).get("active_model")
         if wanted not in self.available:
             if wanted:
                 print(f"Requested model '{wanted}' is not available; using the newest one instead.")
