@@ -36,7 +36,7 @@ def check_dependencies():
 def check_model_files():
     """Check if required model files exist."""
     required_files = [
-        'models/final_model_satellite.h5',
+        'models/model_meta.json',
         'data/austin_master_dataset.csv'
     ]
     
@@ -47,7 +47,7 @@ def check_model_files():
     
     if missing_files:
         print(f"Missing files: {', '.join(missing_files)}")
-        print("Please ensure these files are in the current directory.")
+        print("Download the dataset and import the trained models first (see README.md).")
         return False
     
     print("All required model files found!")

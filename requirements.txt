@@ -11,7 +11,7 @@ scikit-learn
 flask>=2.3.0
 flask-cors>=4.0.0
 
-# Imported by backend/main.py and pipeline/predict_cmd.py but missing upstream
+# Used by backend/main.py and pipeline/predict_cmd.py
 matplotlib
 seaborn
 shap

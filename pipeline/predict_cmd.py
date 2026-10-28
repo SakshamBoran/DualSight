@@ -3,8 +3,8 @@
 Run from the project root:
     python pipeline/predict_cmd.py 123                  # active model
     python pipeline/predict_cmd.py 123 --explain        # plus a breakdown of why
-    python pipeline/predict_cmd.py 123 --model image_only
-Models: image_only, neural_hybrid, boosting_hybrid (whichever you have in models/).
+    python pipeline/predict_cmd.py 123 --model neural_hybrid
+Models: neural_hybrid, boosting_hybrid (whichever you have in models/).
 """
 import os
 import sys
@@ -20,8 +20,6 @@ def main():
     args = sys.argv[1:]
     if "--model" in args:
         os.environ["DUALSIGHT_MODEL"] = args[args.index("--model") + 1]
-    if "--image-only" in args:  # kept from the earlier version of this script
-        os.environ["DUALSIGHT_MODEL"] = "image_only"
     positional = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] != "--model")]
     if not positional:
         print(__doc__)

@@ -1,18 +1,16 @@
 """Loads whichever DualSight model is active, predicts prices and explains them.
 
-Three models can be active:
-    image_only       the original release (models/final_model_satellite.h5)
+Two models can be active:
     neural_hybrid    image + numbers, trained end to end on Kaggle
     boosting_hybrid  ResNet50 image features (PCA) + numbers, gradient boosting
 
 Which one is used: the DUALSIGHT_MODEL environment variable if set, otherwise
 "active_model" in models/model_meta.json (chosen by import_kaggle_model.py),
-otherwise the newest model that exists.
+otherwise the deep + boosting hybrid if it exists.
 
 Every explanation is computed from the active model itself:
     boosting_hybrid  exact TreeSHAP values
     neural_hybrid    integrated gradients for the numbers + image effect vs. typical images
-    image_only       image effect vs. typical images (the model sees nothing else)
 and an occlusion map shows which parts of the satellite patch raised or lowered
 the price (grey out one square, re-predict, measure the change).
 """
@@ -25,7 +23,6 @@ import pandas as pd
 from PIL import Image
 
 MODELS_DIR = "models"
-IMAGE_ONLY_PATH = os.path.join(MODELS_DIR, "final_model_satellite.h5")
 NEURAL_PATH = os.path.join(MODELS_DIR, "final_model_multimodal.h5")
 META_PATH = os.path.join(MODELS_DIR, "model_meta.json")
 BOOSTING_PATH = os.path.join(MODELS_DIR, "hybrid_boosting.joblib")
@@ -39,7 +36,6 @@ IG_STEPS = int(os.environ.get("DUALSIGHT_IG_STEPS", "16"))
 N_BACKGROUND = 16
 
 MODEL_LABELS = {
-    "image_only": "Original image-only CNN",
     "neural_hybrid": "Neural hybrid (image + numbers)",
     "boosting_hybrid": "Deep + boosting hybrid (image features + numbers)",
 }
@@ -83,7 +79,6 @@ class ModelService:
             with open(META_PATH, encoding="utf-8") as f:
                 self.meta = json.load(f)
         self.available = [k for k, ok in (
-            ("image_only", os.path.exists(IMAGE_ONLY_PATH)),
             ("neural_hybrid", os.path.exists(NEURAL_PATH) and self.meta is not None),
             ("boosting_hybrid", os.path.exists(BOOSTING_PATH) and os.path.exists(FEATURES_PATH) and self.meta is not None),
         ) if ok]
@@ -93,18 +88,17 @@ class ModelService:
                 print(f"Requested model '{wanted}' is not available; using the newest one instead.")
             wanted = self.available[-1] if self.available else None
         if wanted is None:
-            raise RuntimeError("No model found in models/. Download final_model_satellite.h5 (see SETUP.md).")
+            raise RuntimeError("No trained model found in models/. Import dualsight_trained_model.zip first (see README.md).")
         self.kind = wanted
         self.label = MODEL_LABELS[wanted]
 
         self.keras_model = None
         self.price_scale = 1.0
-        if self.kind in ("image_only", "neural_hybrid"):
+        if self.kind == "neural_hybrid":
             import tensorflow as tf
             self.tf = tf
-            self.keras_model = tf.keras.models.load_model(NEURAL_PATH if self.kind == "neural_hybrid" else IMAGE_ONLY_PATH)
-            if self.kind == "neural_hybrid":
-                self.price_scale = float(self.meta.get("price_scale", 1.0))
+            self.keras_model = tf.keras.models.load_model(NEURAL_PATH)
+            self.price_scale = float(self.meta.get("price_scale", 1.0))
         else:
             import joblib
             bundle = joblib.load(BOOSTING_PATH)
@@ -128,7 +122,7 @@ class ModelService:
             self.mean = np.array(self.meta["feature_mean"], dtype="float32")
             self.scale = np.array(self.meta["feature_scale"], dtype="float32")
         self._background = None
-        print(f"--> ✅ Active model: {self.label}  (available: {', '.join(self.available)})")
+        print(f"--> Active model: {self.label}  (available: {', '.join(self.available)})")
 
     # ------------------------------------------------------------------ inputs
     def row(self, i):
@@ -144,9 +138,8 @@ class ModelService:
     def scaled_numbers(self, i):
         return (self.raw_numbers(i) - self.mean) / self.scale
 
-    def _neural_log(self, imgs, tabs=None):
-        inputs = imgs if self.kind == "image_only" else [imgs, tabs]
-        return self.keras_model.predict(inputs, batch_size=32, verbose=0).reshape(-1).astype("float64")
+    def _neural_log(self, imgs, tabs):
+        return self.keras_model.predict([imgs, tabs], batch_size=32, verbose=0).reshape(-1).astype("float64")
 
     def _boosting_x(self, i, img_features=None):
         if img_features is None:
@@ -157,23 +150,14 @@ class ModelService:
         return np.concatenate([self.raw_numbers(i), img_features]).reshape(1, -1)
 
     # ------------------------------------------------------------------ predict
-    def needs_property_details(self):
-        return self.kind != "image_only"
-
     def predict_index(self, i):
         if self.kind == "boosting_hybrid":
             log = float(self.gbm.predict(self._boosting_x(i))[0])
         else:
             img = caffe_preprocess(pil_image(self.row(i)["rgb_path"]))[None]
-            tab = self.scaled_numbers(i)[None] if self.kind == "neural_hybrid" else None
+            tab = self.scaled_numbers(i)[None]
             log = float(self._neural_log(img, tab)[0])
         return max(0.0, float(np.expm1(log)) * self.price_scale)
-
-    def predict_uploaded(self, pil_img):
-        if self.kind != "image_only":
-            raise ValueError("The active model needs the property's details. Pick a property from the dataset.")
-        img = caffe_preprocess(np.asarray(pil_img.convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE)), dtype="float32"))[None]
-        return max(0.0, float(np.expm1(self._neural_log(img)[0])))
 
     # ------------------------------------------------------------------ explain
     def _background_images(self):
@@ -200,10 +184,8 @@ class ModelService:
         """Returns base price, dollar steps per factor, final price, method notes and an occlusion grid."""
         if self.kind == "boosting_hybrid":
             base_log, contribs, method = self._explain_boosting(i)
-        elif self.kind == "neural_hybrid":
-            base_log, contribs, method = self._explain_neural(i)
         else:
-            base_log, contribs, method = self._explain_image_only(i)
+            base_log, contribs, method = self._explain_neural(i)
         base_price, steps, final_price = to_dollar_steps(base_log, contribs, self.price_scale)
         grid, grid_note = self._occlusion(i)
         return {"model": self.label, "model_kind": self.kind, "method": method,
@@ -259,15 +241,6 @@ class ModelService:
         return base, contribs, ("Integrated gradients for each number (from the median property to this one, image "
                                 "fixed). The image's effect is measured against 16 typical satellite patches.")
 
-    def _explain_image_only(self, i):
-        img = caffe_preprocess(pil_image(self.row(i)["rgb_path"]))[None]
-        bg = self._background_images()
-        base = float(self._neural_log(bg).mean())
-        full = float(self._neural_log(img)[0])
-        return base, [("Satellite image", full - base)], (
-            "This model only sees the satellite image, so the whole difference from a typical patch "
-            "is the image's effect. Living area, bedrooms and other details are not used.")
-
     def _occlusion(self, i):
         """Change in log(price) when each square of the patch is greyed out (positive = that area raises the price)."""
         g = OCCLUSION_GRID
@@ -301,7 +274,7 @@ class ModelService:
             x = np.hstack([np.repeat(self.raw_numbers(i)[None], len(batch), axis=0), pcs])
             logs = self.gbm.predict(x)
         else:
-            tabs = np.repeat(self.scaled_numbers(i)[None], len(batch), axis=0) if self.kind == "neural_hybrid" else None
+            tabs = np.repeat(self.scaled_numbers(i)[None], len(batch), axis=0)
             logs = self._neural_log(batch, tabs)
         grid = (logs[0] - logs[1:]).reshape(g, g)
         return grid, note

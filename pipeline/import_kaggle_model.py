@@ -15,8 +15,7 @@ image features Kaggle computed, so there are no library-version problems, and sa
     models/hybrid_features.npz
     models/test_predictions.csv
 The better of the two hybrids on the test set becomes the app's active model.
-The backend uses these automatically once they exist. The original image-only
-model (models/final_model_satellite.h5) is left untouched.
+The backend uses these automatically once they exist.
 """
 import json
 import os
@@ -200,10 +199,6 @@ def import_boosting(folder, meta, features_npz):
 
     preds = kaggle_test.copy()
     preds["boosting_hybrid"] = test_pred
-    if os.path.exists(OUT_TEST_PREDS):  # keep an image_only column written by evaluate_model.py
-        old = pd.read_csv(OUT_TEST_PREDS)
-        if "image_only" in old.columns:
-            preds = preds.merge(old[["image_file", "image_only"]], on="image_file", how="left")
     preds.to_csv(OUT_TEST_PREDS, index=False)
     print(f"Saved {OUT_BOOSTING}, {OUT_FEATURES} and {OUT_TEST_PREDS}")
     return local_med

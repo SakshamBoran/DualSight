@@ -23,7 +23,6 @@ Scored on the same 2,994 held-out Austin homes, none of which were used in train
 | **Deep + boosting hybrid** (ResNet50 image features + numbers, gradient boosting) | **12.4%** | **69.9%** | **$87,430** |
 | Neural hybrid (ResNet50 image branch + numeric branch, trained end to end) | 12.7% | 68.6% | $91,358 |
 | Numbers only, no image (gradient boosting) | 15.7% | 59.8% | $107,345 |
-| Image-only CNN (starting baseline) | 21.6% | 46.8% | $327,038 |
 
 Adding the satellite image to the listing numbers cuts the typical error from 15.7% to 12.4%, so the view from space carries real information.
 
@@ -64,11 +63,9 @@ SETUP.md         Full setup guide (Windows, CPU-only laptop)
 Full instructions are in [SETUP.md](SETUP.md). In short:
 
 1. Create two Python 3.10 environments: `venv` from `requirements.txt` and `venv_ui` from `requirements_streamlit.txt`.
-2. Download the data:
-   - `austin_master_dataset.csv` and the image patches from [Kaggle](https://www.kaggle.com/datasets/sanveersinghsuneja/austin-satellite-property-data), into `data/`.
-   - The original image-only model from [Hugging Face](https://huggingface.co/sanveer-singh/austin-property-predictor), into `models/`.
-3. Add the hybrid models. Either:
-   - download `dualsight_trained_model.zip` from this repository's **Releases** page, or
+2. Download the data: `austin_master_dataset.csv` and the image patches from [Kaggle](https://www.kaggle.com/datasets/sanveersinghsuneja/austin-satellite-property-data), into `data/`.
+3. Add the trained models. Either:
+   - download `dualsight_trained_model.zip` from [Hugging Face](https://huggingface.co/SakshamBoran/dualsight), or
    - train your own with the Kaggle notebook.
 
    Then import it:

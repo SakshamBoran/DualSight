@@ -5,10 +5,8 @@ Run from the project root:
     python pipeline/evaluate_model.py --sample 500
 
 Uses the same 80/20 split as training (random_state=42), so the properties
-scored here were never trained on. Scores every model you have: the original
-image-only CNN, the neural hybrid and the deep + boosting hybrid, on the same rows.
-A full run (no --sample) also saves the image-only model's held-out predictions to
-models/test_predictions.csv, which the app's "Predicted vs actual" chart uses.
+scored here were never trained on. Scores the neural hybrid and the deep +
+boosting hybrid (whichever you have imported) on the same rows.
 """
 import json
 import os
@@ -23,12 +21,10 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 
 CSV_PATH = "data/austin_master_dataset.csv"
 IMAGE_DIR = "data/image_patches"
-IMAGE_ONLY_MODEL = "models/final_model_satellite.h5"
 MULTIMODAL_MODEL = "models/final_model_multimodal.h5"
 META_PATH = "models/model_meta.json"
 BOOSTING_PATH = "models/hybrid_boosting.joblib"
 FEATURES_PATH = "models/hybrid_features.npz"
-TEST_PREDS_PATH = "models/test_predictions.csv"
 IMAGE_SIZE = (128, 128)
 
 
@@ -78,12 +74,6 @@ def main():
     print(f"Actual price range: ${actual.min():,.0f} to ${actual.max():,.0f}")
     print(f"Guess-the-median MAE: ${np.abs(actual - np.median(actual)).mean():,.0f}  (a useful model must beat this)")
 
-    model = tf.keras.models.load_model(IMAGE_ONLY_MODEL)
-    pred = np.expm1(model.predict(x_img, batch_size=32, verbose=0).reshape(-1).astype("float64"))
-    report("Original image-only model", actual, pred)
-    if not sample:
-        save_column("image_only", rows["image_file"], actual, pred)
-
     if os.path.exists(MULTIMODAL_MODEL) and os.path.exists(META_PATH):
         with open(META_PATH, encoding="utf-8") as f:
             meta = json.load(f)
@@ -95,7 +85,7 @@ def main():
         pred = np.expm1(model.predict([x_img, x_tab], batch_size=32, verbose=0).reshape(-1).astype("float64"))
         report("Neural hybrid (image + numbers)", actual, pred * float(meta.get("price_scale", 1.0)))
     else:
-        print("\n(No retrained model found. Import one with pipeline/import_kaggle_model.py to compare.)")
+        print("\n(No neural hybrid found. Import the trained models with pipeline/import_kaggle_model.py.)")
 
     if os.path.exists(BOOSTING_PATH) and os.path.exists(FEATURES_PATH):
         import joblib
@@ -109,17 +99,6 @@ def main():
         X = np.hstack([raw, store["img_pca"][[pos[f] for f in rows["image_file"]]]])
         pred = np.expm1(bundle["model"].predict(X)) * float(bundle["price_scale"])
         report("Deep + boosting hybrid", actual, pred)
-
-
-def save_column(name, image_files, actual, pred):
-    """Add/replace one model's held-out predictions in models/test_predictions.csv."""
-    new = pd.DataFrame({"image_file": list(image_files), "actual": actual, name: pred})
-    if os.path.exists(TEST_PREDS_PATH):
-        old = pd.read_csv(TEST_PREDS_PATH).drop(columns=[name], errors="ignore")
-        new = old.merge(new[["image_file", name]], on="image_file", how="outer")
-        new["actual"] = new["actual"].fillna(new["image_file"].map(dict(zip(image_files, actual))))
-    new.to_csv(TEST_PREDS_PATH, index=False)
-    print(f"(saved {name} predictions to {TEST_PREDS_PATH})")
 
 
 if __name__ == "__main__":

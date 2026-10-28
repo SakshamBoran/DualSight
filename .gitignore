@@ -38,3 +38,7 @@ desktop.ini
 # ---- Not part of this repository: the previous project's documents and its legacy HTML page
 docs/original_*
 frontend/public/
+
+# ---- Local only: old scripts kept for reference, and the Hugging Face upload folder
+legacy/
+hf_upload/

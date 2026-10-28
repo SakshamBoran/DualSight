@@ -244,7 +244,6 @@ charts = [
 
 MULTIMODAL_MODEL_PATH = 'models/final_model_multimodal.h5'
 MODEL_META_PATH = 'models/model_meta.json'
-IMAGE_ONLY_MODEL_PATH = 'models/final_model_satellite.h5'
 
 
 def load_resources():
@@ -272,8 +271,6 @@ def _tabular_inputs(rows):
 
 def _model_inputs(img_arr, rows=None):
     """Build the model input for either model type."""
-    if model_meta is None:
-        return img_arr
     if rows is None:
         raise ValueError("The multimodal model needs the property's details. Pick a property from the dataset.")
     return [img_arr, _tabular_inputs(rows)]
@@ -369,16 +366,12 @@ def predict_property():
                 return jsonify({'error': 'Invalid property index'}), 400
                 
         elif uploaded_file:
-            if service.needs_property_details():
-                return jsonify({'error': "The active model needs the property's details. Pick a property from the dataset."}), 400
+            return jsonify({'error': "DualSight needs the listing details as well as the image. Pick a property from the dataset."}), 400
         else:
             return jsonify({'error': 'Either property_index or image file required'}), 400
 
         # Predict price with the active model
-        if property_index is not None:
-            pred_price = service.predict_index(property_index)
-        else:
-            pred_price = service.predict_uploaded(Image.open(uploaded_file.stream))
+        pred_price = service.predict_index(property_index)
 
         # Get actual price if property index provided
         actual_price = None
@@ -489,7 +482,7 @@ def _placeholder_image_base64(message: str):
 
 @app.route('/explain_multimodal', methods=['POST'])
 def explain_multimodal():
-    """Compute SHAP explainability for image-only model."""
+    """SHAP image attributions for the neural hybrid."""
     try:
         if final_model is None or dataset_df is None:
             return jsonify({'error': 'SHAP image attribution needs a neural model; the active model is '
@@ -508,27 +501,15 @@ def explain_multimodal():
         X_img_bg = _load_images(img_paths_bg)
 
         # SHAP explainer for images
-        if model_meta is not None:
-            X_bg = [X_img_bg, _tabular_inputs(bg_df)]
-            explainer = shap.GradientExplainer(final_model, X_bg)
-            shap_values = explainer.shap_values(X_bg)
-            img_attr = np.asarray(shap_values[0])  # attributions for the image input
-        else:
-            try:
-                explainer = shap.GradientExplainer(final_model, X_img_bg)
-                shap_values = explainer.shap_values(X_img_bg)
-            except Exception:
-                explainer = shap.DeepExplainer(final_model, X_img_bg)
-                shap_values = explainer.shap_values(X_img_bg)
-            img_attr = None
+        X_bg = [X_img_bg, _tabular_inputs(bg_df)]
+        explainer = shap.GradientExplainer(final_model, X_bg)
+        shap_values = explainer.shap_values(X_bg)
+        img_attr = np.asarray(shap_values[0])  # attributions for the image input
 
         # Visualize first image attribution heatmap
         idx = 0
         img = X_img_bg[idx]
-        if img_attr is not None:
-            attr = img_attr[idx].reshape(img.shape)
-        else:
-            attr = shap_values[idx] if isinstance(shap_values, list) else shap_values
+        attr = img_attr[idx].reshape(img.shape)
         heat = np.mean(attr, axis=2)  # average over channels
         heat = (heat - np.min(heat)) / (np.max(heat) - np.min(heat) + 1e-8)
         cmap = plt.get_cmap('jet')
@@ -669,7 +650,6 @@ def explain_prediction():
 
 
 MODEL_COLUMN_LABELS = {
-    "image_only": "Original image-only CNN",
     "neural_hybrid": "Neural hybrid",
     "boosting_hybrid": "Deep + boosting hybrid",
     "numbers_only": "Numbers only (no image)",
@@ -707,7 +687,7 @@ def _property_facts(row):
 
 
 def _heuristic_scores(row):
-    """The original project's 1-10 ratings. Simple formulas on listing data, not model output."""
+    """1-10 ratings from simple formulas on the listing data, not model output."""
     try:
         school_rating = float(row.get('avgSchoolRating', 3.0))
         living_area = float(row.get('livingAreaSqFt', 1500))

@@ -700,7 +700,7 @@ if exp:
             comp = sorted(comp, key=lambda m: m["median_pct_error"])
             c1, c2 = st.columns(2, gap="large")
             colours = {"boosting_hybrid": (MINT, MINT_D), "neural_hybrid": (SKY, SKY_D),
-                       "numbers_only": (BUTTER, BUTTER_D), "image_only": (PEACH, PEACH_D)}
+                       "numbers_only": (BUTTER, BUTTER_D)}
             labels = [m["label"] + (" (in use)" if m["active"] else "") for m in comp]
             with c1:
                 fig = go.Figure(go.Bar(y=labels, x=[m["median_pct_error"] for m in comp], orientation="h",
@@ -730,10 +730,10 @@ if exp:
                 extra = (f" Adding the satellite image to the listing numbers cuts the typical error from "
                          f"{by_kind['numbers_only']['median_pct_error']:.1f}% to {by_kind['boosting_hybrid']['median_pct_error']:.1f}%, "
                          "so the view from space carries real information.")
-            howto(f"All models were scored on the same {comp[0]['n']:,} unseen homes. The original project used the "
-                  f"<b>image-only</b> model; the two hybrids also read the listing details.{extra}")
+            howto(f"All models were scored on the same {comp[0]['n']:,} unseen homes. The two hybrids read the satellite "
+                  f"image and the listing details; the numbers-only model reads the listing details alone.{extra}")
         else:
-            st.info("Model comparison appears after importing the Kaggle models and running `python pipeline/evaluate_model.py`.")
+            st.info("Model comparison appears after importing the trained models (see README.md).")
 
 # ------------------------------------------------------------------ ratings & amenities
 if property_id in ss.open_ratings:
@@ -777,7 +777,7 @@ if property_id in ss.open_ratings:
         bd, bt = facts.get("numOfBedrooms") or 0, facts.get("numOfBathrooms") or 0
         lot, yb = facts.get("lotSizeSqFt") or 0, facts.get("yearBuilt") or 0
         cap = lambda x: f"{x:.1f}" + (" → capped at 10" if x > 10 else " → raised to 1" if x < 1 else "")
-        st.markdown(f"""<div class="ap-howto"><b>How each rating is worked out</b> (from the original project, all kept between 1 and 10):<br>
+        st.markdown(f"""<div class="ap-howto"><b>How each rating is worked out</b> (simple formulas, all kept between 1 and 10):<br>
         <b>Neighbourhood</b> = 2.5 × school rating + living area ÷ 1,000 = 2.5 × {s_:.1f} + {la:,.0f} ÷ 1,000 = {cap(2.5 * s_ + la / 1000)}<br>
         <b>Accessibility</b> = 1.5 × (bedrooms + bathrooms) = 1.5 × ({bd:g} + {bt:g}) = {cap(1.5 * (bd + bt))}<br>
         <b>Green space</b> = lot ÷ 1,000 + (year built − 1990) ÷ 10 = {lot:,.0f} ÷ 1,000 + ({yb:.0f} − 1990) ÷ 10 = {cap(lot / 1000 + (yb - 1990) / 10)}
@@ -810,6 +810,6 @@ if property_id in ss.open_ratings:
                   f'{d.get("confidence", "low")} confidence</span></p>'
                   f'<p style="color:{MUTED}">{d.get("reasoning", "")}</p></div>')
     st.markdown(f'<div class="ap-amenities">{cards or "<p>No amenity guesses for this home.</p>"}</div>', unsafe_allow_html=True)
-    st.markdown('<p class="ap-note" style="margin-top:.8rem">These guesses come from simple rules in the original project '
+    st.markdown('<p class="ap-note" style="margin-top:.8rem">These guesses come from simple rules '
                 '(price range and ratings), not from maps or the model. Treat them as a talking point, not a fact.</p>',
                 unsafe_allow_html=True)

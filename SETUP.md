@@ -23,19 +23,28 @@ pip install -r requirements_streamlit.txt
 deactivate
 ```
 
-## 2. Large files (not in the repo)
+## 2. Data and trained models (not in the repo)
 
-1. `final_model_satellite.h5` from https://huggingface.co/sanveer-singh/austin-property-predictor goes into `models\`.
-2. From https://www.kaggle.com/datasets/sanveersinghsuneja/austin-satellite-property-data:
-   - `austin_master_dataset.csv` goes into `data\`
-   - the PNGs go **directly** into `data\image_patches\` (the download nests them one level deeper; move them up)
-3. The Kaggle CSV stores paths as `image_patches\property_0_rgb.png`. Rewrite them once so they include `data/`:
+**Data.** From https://www.kaggle.com/datasets/sanveersinghsuneja/austin-satellite-property-data:
+- `austin_master_dataset.csv` goes into `data\`
+- the PNGs go **directly** into `data\image_patches\` (the download nests them one level deeper; move them up)
+
+The Kaggle CSV stores paths as `image_patches\property_0_rgb.png`. Rewrite them once so they include `data/`:
 
 ```bash
 venv\Scripts\activate
 copy data\austin_master_dataset.csv data\austin_master_dataset.backup.csv
 python -c "import pandas as pd; d=pd.read_csv('data/austin_master_dataset.csv'); [d.__setitem__(c, d[c].str.replace('\\','/',regex=False).radd('data/')) for c in ('rgb_path','ndvi_path')]; d.to_csv('data/austin_master_dataset.csv',index=False)"
 ```
+
+**Trained models.** Download `dualsight_trained_model.zip` from https://huggingface.co/SakshamBoran/dualsight (Files and versions tab), then import it:
+
+```bash
+venv\Scripts\activate
+python pipeline/import_kaggle_model.py "%USERPROFILE%\Downloads\dualsight_trained_model.zip"
+```
+
+Or train your own with the Kaggle notebook (section 5).
 
 ## 3. Run the app
 
@@ -53,10 +62,10 @@ venv_ui\Scripts\activate
 streamlit run frontend/app.py
 ```
 
-Open http://localhost:8501, click **Load Properties**, pick an address, then click **Analyze Property**.
-Wait for `model loaded` in terminal 1 before clicking (about 20–30 s on first start).
+Open http://localhost:8501, pick an address, then click **Show prediction**.
+Wait for `Active model` in terminal 1 before clicking (about 20–30 s on first start).
 
-Command-line prediction: `python pipeline/predict_cmd.py 123`. Add `--explain` for the breakdown, or `--model image_only|neural_hybrid|boosting_hybrid` to pick a model.
+Command-line prediction: `python pipeline/predict_cmd.py 123`. Add `--explain` for the breakdown, or `--model neural_hybrid|boosting_hybrid` to pick a model.
 
 ## 4. Measure accuracy
 
@@ -66,7 +75,7 @@ python pipeline/evaluate_model.py              # whole 20% test set
 python pipeline/evaluate_model.py --sample 500 # faster
 ```
 
-Scores every model you have on the same held-out properties. A full run (no `--sample`) also records the original model's held-out predictions for the app's "Predicted vs actual" chart.
+Scores both hybrid models on the same held-out properties, none of which were used in training.
 
 ## 5. Retrain on Kaggle: two hybrid models
 
@@ -76,7 +85,7 @@ Scores every model you have on the same held-out properties. A full run (no `--s
 4. **Run All** (about 25–70 min). It trains and compares, on one test set:
    - **Model 1, neural hybrid:** ResNet50 image branch + numeric branch, trained end to end.
    - **Model 2, deep + boosting hybrid:** ResNet50 image features (PCA) + numbers, gradient boosting.
-   - A numbers-only model and a guess-the-median baseline.
+   - A numbers-only model, for comparison.
 
    Optional switches in the Settings cell: `USE_LATLON = True` adds latitude/longitude; `QUICK_TEST = True` does a short check run.
    (`kaggle\dualsight_kaggle_training_v1.ipynb` is the earlier, neural-only version.)
@@ -100,20 +109,20 @@ set DUALSIGHT_MODEL=neural_hybrid
 python backend/main.py
 ```
 
-(`image_only`, `neural_hybrid` or `boosting_hybrid`.) The first start with the boosting hybrid downloads ~94 MB of ImageNet weights, used for the image map.
+(`neural_hybrid` or `boosting_hybrid`.) The first start with the boosting hybrid downloads ~94 MB of ImageNet weights, used for the image map.
 
 ## 6. Explanations (explainable AI)
 
-**Get Detailed Explanation** computes everything from the active model (a few seconds on a laptop CPU):
+**Explain this estimate** computes everything from the active model (a few seconds on a laptop CPU):
 
 | Chart | Method |
 | --- | --- |
-| Why this price | Boosting hybrid: exact **TreeSHAP**. Neural hybrid: **integrated gradients** for each number, plus the image's effect vs. 16 typical patches. Original model: image effect only (it uses nothing else). The steps add up exactly to the prediction. |
+| Why this price | Boosting hybrid: exact **TreeSHAP**. Neural hybrid: **integrated gradients** for each number, plus the image's effect vs. 16 typical patches. The steps add up exactly to the prediction. |
 | Which parts of the satellite image mattered | **Occlusion map**: each square of an 8×8 grid is greyed out in turn and the price re-predicted. Green raised the price, red lowered it. |
 | Predicted vs actual on held-out properties | Real test-set predictions for the active model, with this property starred. |
 
 The notebook also saves a global SHAP importance chart (`global_importance.png`) for model 2.
-The 1–10 ratings and "Inferred amenities" are the original project's rule-based formulas, not model output, and the app labels them that way.
+The 1–10 ratings and "Inferred amenities" come from simple rule-based formulas, not model output, and the app labels them that way.
 Speed knobs: `DUALSIGHT_OCCLUSION_GRID=4` (default 8) and `DUALSIGHT_IG_STEPS=8` (default 16).
 
 ## 7. Rebuilding the satellite data from scratch (optional)
@@ -129,25 +138,3 @@ python pipeline/download_sentinel.py LAT_MIN LON_MIN LAT_MAX LON_MAX
 python pipeline/compute_ndvi.py
 python pipeline/generate_image_patches.py
 ```
-
-## What differs from the upstream repo
-
-| Change | Why |
-| --- | --- |
-| Sentinel Hub keys from `SH_CLIENT_ID` / `SH_CLIENT_SECRET` | Upstream hardcodes a key in a public repo |
-| `compute_ndvi.py`, `download_sentinel.py` use `data/outputs/` | Upstream stages disagreed on the folder |
-| `requirements.txt` adds matplotlib, seaborn, shap, joblib | Imported by the backend, missing upstream |
-| Backend serves `/static` from `./static`; SHAP chart call fixed; dark chart theme | Charts were never served; a call raised TypeError; text unreadable |
-| Streamlit: format-string fix, `width='stretch'` | Crash after Analyze; deprecation warnings |
-| `model_def.py`: named layers, `training=False` on ResNet50, `pretrained` switch | Lets Kaggle weights load by name into TF 2.10; keeps BatchNorm stable when fine-tuning |
-| Backend / `predict_cmd.py` / `evaluate_model.py` support the image + numeric model | Upstream's released model is image-only despite the README |
-| `kaggle/` notebook, `import_kaggle_model.py` | GPU training of two hybrid models, safe transfer to TF 2.10 |
-| `backend/model_service.py`; explanation charts rebuilt | Explanations computed from the model (TreeSHAP, integrated gradients, occlusion, real held-out results) instead of fixed formulas and random points |
-| `main.py` starts Streamlit from `venv_ui` | The two stacks cannot share one environment |
-
-### Known limitations of the original model (measured on 2,994 held-out properties)
-
-- It compresses prices toward the middle: the cheapest 20% are overpredicted (median +32%) and the priciest 20% underpredicted (median −41%).
-- Cloud-speckled patches can produce absurd values. One $291K house was predicted at $535M.
-- Homes beside the airport get very low predictions, because the runways dominate the patch.
-- Upstream's explanation charts were not model output: contributions used fixed formulas, and "Predicted vs Actual" used random points. They have been replaced (section 6).
