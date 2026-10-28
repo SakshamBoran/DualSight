@@ -87,8 +87,6 @@ Model files and data are not stored in this repository because they exceed GitHu
 
 ## Acknowledgements
 
-DualSight started from the open-source [AeroPrice](https://github.com/sanveer-singh-suneja/AeroPrice) project, whose data pipeline, Sentinel-2 image patches and image-only baseline model it builds on. The setup steps above download that project's published dataset and baseline model.
-
 Data and assets:
 - Satellite imagery: Copernicus Sentinel-2
 - Housing data: the Austin housing dataset via the Kaggle dataset above
